@@ -764,17 +764,18 @@
             renderSchedule();
         }
 
-        // Save data to Supabase Cloud mapping to the profile column
+        // Save data to Supabase Cloud mapping both the primary id and profile column
         async function saveData() {
             await supabaseClient
                 .from('tracker_data')
                 .upsert({
+                    id: currentProfile,
                     profile: currentProfile,
                     food_entries: foodEntries,
                     water_intake: currentIntake,
                     water_history: hydrationHistoryList,
                     updated_at: new Date()
-                }, { onConflict: 'profile' });
+                }, { onConflict: 'id' });
         }
 
         function updateWaterUI() {
