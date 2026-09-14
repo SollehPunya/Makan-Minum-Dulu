@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Personal Dashboard - Food Intake & Hydration Tracker</title>
+    <title>Personal Dashboard - Food Intake, Hydration & Trading PnL</title>
     
     <!-- Favicon & iOS Home Screen Icon -->
     <link rel="icon" type="image/png" href="whale.png">
@@ -15,6 +15,20 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <!-- Supabase CDN Script -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Tailwind CSS CDN for utility classes -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        profit: '#10B981',
+                        loss: '#EF4444',
+                    }
+                }
+            }
+        }
+    </script>
     
     <!-- External Stylesheet -->
     <link rel="stylesheet" href="style.css">
@@ -32,15 +46,15 @@
             <button class="sidebar-item active" onclick="switchModule('dashboard')">
                 <i class="fa-solid fa-house"></i> Dashboard
             </button>
-            <button class="sidebar-item" onclick="switchModule('calendar')">
-                <i class="fa-solid fa-calendar-days"></i> Calendar History
+            <button class="sidebar-item" onclick="switchModule('pnl')">
+                <i class="fa-solid fa-chart-line"></i> Trading PnL Calendar
             </button>
         </div>
     </aside>
 
     <div class="dashboard-container">
         <!-- Header -->
-        <header class="top-header">
+        <header class="top-header" id="topHeader">
             <div class="header-left">
                 <i class="fa-solid fa-bars menu-icon" onclick="toggleSidebar()"></i>
                 FOOD & WATER INTAKE
@@ -119,20 +133,80 @@
 
         </main>
 
-        <!-- Calendar History Module (Hidden by Default) -->
-        <section class="calendar-module" id="calendarModule" style="display: none;">
-            <div class="card" style="width: 100%; min-height: 500px;">
-                <div class="card-header">
-                    <i class="fa-solid fa-calendar-days" style="color: #407b9e;"></i> CALENDAR HISTORY & PAST LOGS
+        <!-- Trading PnL Calendar Module (Hidden by Default) -->
+        <section id="pnlCalendarModule" style="display: none;" class="flex flex-col gap-6">
+            <!-- Dashboard Summary Cards -->
+            <section class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div class="bg-white/75 p-5 rounded-2xl border border-[#cbd5e1] shadow-xs flex flex-col justify-between">
+                    <p class="text-xs text-[#4b5563] font-medium">Total PnL</p>
+                    <p id="summary-total" class="text-lg sm:text-xl font-bold mt-2 text-[#1f2937]">$0.00</p>
                 </div>
-                <div class="calendar-controls">
-                    <label for="historyDateSelect">Select Date:</label>
-                    <input type="date" id="historyDateSelect" onchange="loadHistoricalRecordForDate(this.value)">
+                <div class="bg-white/75 p-5 rounded-2xl border border-[#cbd5e1] shadow-xs flex flex-col justify-between">
+                    <p class="text-xs text-[#4b5563] font-medium">Win Rate</p>
+                    <p id="summary-winrate" class="text-lg sm:text-xl font-bold mt-2 text-[#1f2937]">0%</p>
                 </div>
-                <div id="calendarDayContent" class="calendar-day-view">
-                    <p style="color: var(--text-light); text-align: center; padding: 30px;">Choose a date above to inspect past food and water logs.</p>
+                <div class="bg-white/75 p-5 rounded-2xl border border-[#cbd5e1] shadow-xs flex flex-col justify-between">
+                    <p class="text-xs text-[#4b5563] font-medium">Wins / Losses</p>
+                    <p id="summary-w-l" class="text-lg sm:text-xl font-bold mt-2 text-[#1f2937]">0 / 0</p>
                 </div>
-            </div>
+                <div class="bg-white/75 p-5 rounded-2xl border border-[#cbd5e1] shadow-xs flex flex-col justify-between">
+                    <p class="text-xs text-[#4b5563] font-medium">Best Day</p>
+                    <p id="summary-best" class="text-lg sm:text-xl font-bold text-profit mt-2">$0.00</p>
+                </div>
+            </section>
+
+            <!-- Monthly Goal Tracker Card -->
+            <section class="bg-white/75 p-5 sm:p-6 rounded-2xl border border-[#cbd5e1] shadow-xs flex flex-col gap-3">
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-500 flex items-center justify-center text-sm font-bold border border-amber-200">
+                            <i class="fa-solid fa-bullseye"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-bold text-[#1f2937]">Monthly Profit Goal</h3>
+                            <p id="goal-text-status" class="text-xs text-[#4b5563] mt-0.5">$0.00 / $0.00 (0%)</p>
+                        </div>
+                    </div>
+                    <button onclick="openGoalModal()" class="bg-white hover:bg-gray-50 text-[#1f2937] border border-[#cbd5e1] px-3.5 py-2 rounded-xl text-xs font-semibold transition shadow-2xs">
+                        Set Goal
+                    </button>
+                </div>
+                <!-- Progress Bar -->
+                <div class="w-full bg-gray-200 h-3 rounded-full overflow-hidden mt-1">
+                    <div id="goal-progress-bar" class="bg-[#407b9e] h-full transition-all duration-500 w-0"></div>
+                </div>
+            </section>
+
+            <!-- Calendar Container Card -->
+            <section class="bg-white/75 p-5 sm:p-6 rounded-2xl border border-[#cbd5e1] shadow-xs flex flex-col gap-5">
+                <!-- Navigation header -->
+                <div class="flex justify-between items-center flex-wrap gap-3">
+                    <div class="flex items-center gap-2">
+                        <button onclick="changeMonth(-1)" class="bg-white hover:bg-gray-50 border border-[#cbd5e1] text-[#1f2937] px-3.5 py-2 rounded-xl text-sm font-medium transition flex items-center gap-1.5 shadow-2xs">
+                            <i class="fa-solid fa-chevron-left text-xs"></i> Prev
+                        </button>
+                        <h2 id="month-year-display" class="text-base sm:text-lg font-bold text-[#1f2937] px-2">Month Year</h2>
+                        <button onclick="changeMonth(1)" class="bg-white hover:bg-gray-50 border border-[#cbd5e1] text-[#1f2937] px-3.5 py-2 rounded-xl text-sm font-medium transition flex items-center gap-1.5 shadow-2xs">
+                            Next <i class="fa-solid fa-chevron-right text-xs"></i>
+                        </button>
+                    </div>
+
+                    <!-- Weekend Toggle Button -->
+                    <button onclick="toggleWeekends()" id="weekend-toggle-btn" class="bg-white hover:bg-gray-50 text-[#1f2937] border border-[#cbd5e1] px-3.5 py-2 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 shadow-2xs">
+                        <i class="fa-solid fa-calendar-week text-[#407b9e]"></i> <span id="weekend-btn-text">Hide Weekends</span>
+                    </button>
+                </div>
+
+                <!-- Days of the Week Header -->
+                <div id="days-header" class="grid grid-cols-7 gap-2 text-center text-xs font-bold text-[#4b5563]">
+                    <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
+                </div>
+
+                <!-- Calendar Grid Days -->
+                <div id="calendar-grid" class="grid grid-cols-7 gap-2">
+                    <!-- Javascript will inject days here -->
+                </div>
+            </section>
         </section>
     </div>
 
@@ -185,6 +259,71 @@
                     <button type="submit" class="btn-submit">Add Entry</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- Edit/Add PnL Modal -->
+    <div id="pnl-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span id="modal-date-title">Edit Date</span>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            
+            <div class="form-group">
+                <label for="modal-pnl-input">PnL Amount ($)</label>
+                <input type="number" id="modal-pnl-input" step="any" placeholder="e.g. 150.50 or -45.00">
+            </div>
+
+            <div class="form-group">
+                <label for="modal-notes-input">Notes (Optional)</label>
+                <textarea id="modal-notes-input" placeholder="Setup used, psychology, market notes..." rows="3" style="width: 100%; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 12px; font-size: 14px; outline: none; resize: none; background-color: #fff;"></textarea>
+            </div>
+
+            <div class="modal-actions">
+                <button type="button" class="btn-cancel" onclick="deletePnL()" style="background-color: #fee2e2; color: #ef4444;"><i class="fa-solid fa-trash text-sm"></i> Delete</button>
+                <button type="button" class="btn-submit" onclick="savePnL()">Save Entry</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Set Goal Modal -->
+    <div id="goal-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span>Set Monthly Goal</span>
+                <button class="modal-close" onclick="closeGoalModal()">&times;</button>
+            </div>
+            
+            <div class="form-group">
+                <label for="modal-goal-input">Target Profit ($)</label>
+                <input type="number" id="modal-goal-input" step="any" placeholder="e.g. 2000">
+            </div>
+
+            <div class="modal-actions">
+                <button type="button" class="btn-cancel" onclick="closeGoalModal()">Cancel</button>
+                <button type="button" class="btn-submit" onclick="saveGoal()">Save Goal</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Account Modal -->
+    <div id="account-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span>Add New Account</span>
+                <button class="modal-close" onclick="closeAddAccountModal()">&times;</button>
+            </div>
+            
+            <div class="form-group">
+                <label for="modal-account-input">Account Name</label>
+                <input type="text" id="modal-account-input" placeholder="e.g. Funded Account, Crypto Vault">
+            </div>
+
+            <div class="modal-actions">
+                <button type="button" class="btn-cancel" onclick="closeAddAccountModal()">Cancel</button>
+                <button type="button" class="btn-submit" onclick="createAccount()">Create Account</button>
+            </div>
         </div>
     </div>
 
