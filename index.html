@@ -639,38 +639,15 @@
 
                     <div class="hydration-stats">
                         <div class="bottle-container">
-                            
-                            <!-- Larger Scaled Vector Bottle SVG with Bottom-to-Top Sharp Filling -->
-                            <svg width="140" height="200" viewBox="0 0 100 150" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <defs>
-                                    <clipPath id="bottleClip">
-                                        <path d="M 23 46 H 77 V 138 C 77 143, 73 147, 68 147 H 32 C 27 147, 23 143, 23 138 Z" />
-                                    </clipPath>
-                                    <linearGradient id="waterGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                                        <stop offset="0%" stop-color="#93c5fd" />
-                                        <stop offset="100%" stop-color="#3b82f6" />
-                                    </linearGradient>
-                                </defs>
-
-                                <!-- Water Fill Container starting from absolute bottom (147) -->
-                                <g clip-path="url(#bottleClip)">
-                                    <rect id="svgWater" x="23" y="147" width="54" height="0" fill="url(#waterGradient)" />
-                                </g>
-
-                                <!-- Bottle Cap -->
-                                <rect x="40" y="8" width="20" height="10" rx="3" fill="#ffffff" stroke="#1f2937" stroke-width="3" stroke-linejoin="round"/>
-                                
-                                <!-- Bottle Outline Contour -->
-                                <path d="M 43 18 H 57 C 62 18, 65 25, 70 32 C 74 38, 77 42, 77 46 V 138 C 77 143, 73 147, 68 147 H 32 C 27 147, 23 143, 23 138 V 46 C 23 42, 26 38, 30 32 C 35 25, 38 18, 43 18 Z" fill="none" stroke="#1f2937" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-                            </svg>
-
-                            <div style="font-size: 15px; font-weight: 600;" id="amountText">0.0L / 2.5L</div>
+                            <!-- Dynamic Bottle Render Container -->
+                            <div id="bottleContainerWrapper"></div>
+                            <div style="font-size: 15px; font-weight: 600;" id="amountText">0.0L / 1.5L</div>
                         </div>
                         
                         <div class="water-info">
                             <div id="infoText">
                                 <strong>TODAY'S GOAL:</strong>
-                                2.5 Liters<br><br>
+                                1.5 Liters<br><br>
                                 <strong>CURRENT:</strong>
                                 0.0 L (0%)
                             </div>
@@ -680,9 +657,9 @@
                     </div>
 
                     <div class="quick-add-btns">
-                        <button onclick="addWater(250)">+250ml</button>
-                        <button onclick="addWater(500)">+500ml</button>
-                        <button onclick="addWater(1000)">+1000ml</button>
+                        <button onclick="addWater(10)">+10ml</button>
+                        <button onclick="addWater(30)">+30ml</button>
+                        <button onclick="addWater(120)">+120ml</button>
                     </div>
                 </div>
 
@@ -753,21 +730,92 @@
         
         let currentProfile = 'sollehin'; // Default profile matching column value
 
-        const dailyGoal = 2500; // 2.5L in ml
+        let dailyGoal = 2500; // Default in ml
         let currentIntake = 0;
         let foodEntries = [];
         let hydrationHistoryList = [];
 
-        const cavityBottom = 147; 
-        const cavityTop = 46;    
-        const maxCavityHeight = 101; 
+        // Update profile-specific goals and quick-add buttons
+        function updateProfileSpecifics() {
+            const quickAddContainer = document.querySelector('.quick-add-btns');
+            if (currentProfile === 'iman_sayf') {
+                dailyGoal = 1000; // 1.0L
+                quickAddContainer.innerHTML = `
+                    <button onclick="addWater(10)">+10ml</button>
+                    <button onclick="addWater(30)">+30ml</button>
+                    <button onclick="addWater(120)">+120ml</button>
+                `;
+            } else {
+                dailyGoal = 2500; // 2.5L
+                quickAddContainer.innerHTML = `
+                    <button onclick="addWater(250)">+250ml</button>
+                    <button onclick="addWater(500)">+500ml</button>
+                    <button onclick="addWater(1000)">+1000ml</button>
+                `;
+            }
+        }
+
+        // Render appropriate bottle template based on profile
+        function renderBottleTemplate() {
+            const wrapper = document.getElementById('bottleContainerWrapper');
+            if (currentProfile === 'iman_sayf') {
+                // Training Sippy Cup for Iman Sayf
+                wrapper.innerHTML = `
+                    <svg width="140" height="200" viewBox="0 0 140 150" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <clipPath id="trainingBottleClip">
+                                <path d="M 42 62 H 98 V 136 C 98 141, 94 145, 89 145 H 51 C 46 145, 42 141, 42 136 Z" />
+                            </clipPath>
+                            <linearGradient id="waterGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" stop-color="#93c5fd" />
+                                <stop offset="100%" stop-color="#3b82f6" />
+                            </linearGradient>
+                        </defs>
+                        <g clip-path="url(#trainingBottleClip)">
+                            <rect id="svgWater" x="42" y="145" width="56" height="0" fill="url(#waterGradient)" />
+                        </g>
+                        <!-- Left Handle -->
+                        <path d="M 42 74 C 15 74, 15 120, 42 126" stroke="#1f2937" stroke-width="3" stroke-linecap="round" fill="none"/>
+                        <!-- Right Handle -->
+                        <path d="M 98 74 C 125 74, 125 120, 98 126" stroke="#1f2937" stroke-width="3" stroke-linecap="round" fill="none"/>
+                        <!-- Cup Body Outline -->
+                        <path d="M 42 62 H 98 V 136 C 98 141, 94 145, 89 145 H 51 C 46 145, 42 141, 42 136 Z" fill="none" stroke="#1f2937" stroke-width="3" stroke-linejoin="round"/>
+                        <!-- Lid Collar -->
+                        <path d="M 34 50 H 106 C 109 50, 111 52, 111 55 V 62 C 111 65, 109 67, 106 67 H 34 C 31 67, 29 65, 29 62 V 55 C 29 52, 31 50, 34 50 Z" fill="#ffffff" stroke="#1f2937" stroke-width="3" stroke-linejoin="round"/>
+                        <!-- Lid Top / Dome -->
+                        <path d="M 44 50 V 38 C 44 33, 48 29, 53 29 H 87 C 92 29, 96 33, 96 38 V 50 Z" fill="#ffffff" stroke="#1f2937" stroke-width="3" stroke-linejoin="round"/>
+                        <!-- Spout -->
+                        <path d="M 52 29 L 46 13 C 45 10, 48 8, 51 10 L 59 29 Z" fill="#ffffff" stroke="#1f2937" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+                    </svg>
+                `;
+            } else {
+                // Standard Bottle for Sollehin & Syahirah
+                wrapper.innerHTML = `
+                    <svg width="140" height="200" viewBox="0 0 100 150" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <clipPath id="bottleClip">
+                                <path d="M 23 46 H 77 V 138 C 77 143, 73 147, 68 147 H 32 C 27 147, 23 143, 23 138 Z" />
+                            </clipPath>
+                            <linearGradient id="waterGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" stop-color="#93c5fd" />
+                                <stop offset="100%" stop-color="#3b82f6" />
+                            </linearGradient>
+                        </defs>
+                        <g clip-path="url(#bottleClip)">
+                            <rect id="svgWater" x="23" y="147" width="54" height="0" fill="url(#waterGradient)" />
+                        </g>
+                        <rect x="40" y="8" width="20" height="10" rx="3" fill="#ffffff" stroke="#1f2937" stroke-width="3" stroke-linejoin="round"/>
+                        <path d="M 43 18 H 57 C 62 18, 65 25, 70 32 C 74 38, 77 42, 77 46 V 138 C 77 143, 73 147, 68 147 H 32 C 27 147, 23 143, 23 138 V 46 C 23 42, 26 38, 30 32 C 35 25, 38 18, 43 18 Z" fill="none" stroke="#1f2937" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                `;
+            }
+        }
 
         // Switch profile dynamically when dropdown changes
         function switchProfile() {
             const selectEl = document.getElementById('profileSelect');
             currentProfile = selectEl.value;
 
-            // Update header text and avatar initials dynamically
             let profileName = "SOLLEHIN";
             let initials = "SO";
             if (currentProfile === 'syahirah') {
@@ -781,7 +829,8 @@
             document.getElementById('headerProfileTitle').innerText = profileName;
             document.getElementById('userAvatarText').innerText = initials;
 
-            // Load data for the newly selected profile
+            updateProfileSpecifics();
+            renderBottleTemplate();
             loadData();
         }
 
@@ -831,23 +880,33 @@
 
             const ratio = currentIntake / dailyGoal; 
             const liters = (currentIntake / 1000).toFixed(1); 
+            const goalLiters = (dailyGoal / 1000).toFixed(1);
             const percentage = Math.round(ratio * 100);
 
             let visualRatio = ratio;
             if (visualRatio > 1.1) visualRatio = 1.1; 
 
+            let cavityBottom = 147;
+            let maxCavityHeight = 101;
+            if (currentProfile === 'iman_sayf') {
+                cavityBottom = 145;
+                maxCavityHeight = 83;
+            }
+
             const waterHeight = visualRatio * maxCavityHeight;
             const waterY = cavityBottom - waterHeight;
 
             const svgWater = document.getElementById('svgWater');
-            svgWater.setAttribute('height', waterHeight);
-            svgWater.setAttribute('y', waterY);
+            if (svgWater) {
+                svgWater.setAttribute('height', waterHeight);
+                svgWater.setAttribute('y', waterY);
+            }
 
-            document.getElementById('amountText').innerText = `${liters}L / 2.5L`;
+            document.getElementById('amountText').innerText = `${liters}L / ${goalLiters}L`;
             
             document.getElementById('infoText').innerHTML = `
                 <strong>TODAY'S GOAL:</strong>
-                2.5 Liters<br><br>
+                ${goalLiters} Liters<br><br>
                 <strong>CURRENT:</strong>
                 ${liters} L (${percentage}%)
             `;
@@ -1054,8 +1113,12 @@
             renderSchedule();
         }
 
-        // Initialize application data from Supabase Cloud on page load
-        window.onload = loadData;
+        // Initialize application data, specific configurations, and default bottle on page load
+        window.onload = () => {
+            updateProfileSpecifics();
+            renderBottleTemplate();
+            loadData();
+        };
     </script>
 </body>
 </html>
