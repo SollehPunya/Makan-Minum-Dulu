@@ -702,7 +702,7 @@
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJpdHJzaHVxYXF0ZHpvZWFpdWFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkzNjM3NDQsImV4cCI6MjEwNDkzOTc0NH0.kH0EB6fMY2WqV8EQud22Z-VtuXswuJk22fx1-G9zCJU';
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         
-        let USER_ID = 'sollehin'; // Default profile
+        let currentProfile = 'sollehin'; // Default profile matching column value
 
         const dailyGoal = 2500; // 2.5L in ml
         let currentIntake = 0;
@@ -716,15 +716,15 @@
         // Switch profile dynamically when dropdown changes
         function switchProfile() {
             const selectEl = document.getElementById('profileSelect');
-            USER_ID = selectEl.value;
+            currentProfile = selectEl.value;
 
             // Update header text and avatar initials dynamically
             let profileName = "SOLLEHIN";
             let initials = "SO";
-            if (USER_ID === 'syahirah') {
+            if (currentProfile === 'syahirah') {
                 profileName = "SYAHIRAH";
                 initials = "SY";
-            } else if (USER_ID === 'iman_sayf') {
+            } else if (currentProfile === 'iman_sayf') {
                 profileName = "IMAN SAYF";
                 initials = "IS";
             }
@@ -736,7 +736,7 @@
             loadData();
         }
 
-        // Load data from Supabase Cloud for current USER_ID
+        // Load data from Supabase Cloud using the profile column filter
         async function loadData() {
             // Reset local states temporarily while fetching
             currentIntake = 0;
@@ -747,7 +747,7 @@
                 const { data, error } = await supabaseClient
                     .from('tracker_data')
                     .select('*')
-                    .eq('id', USER_ID)
+                    .eq('profile', currentProfile)
                     .single();
                 
                 if (data) {
@@ -756,7 +756,7 @@
                     hydrationHistoryList = data.water_history || [];
                 }
             } catch (err) {
-                console.log('Initializing record for profile:', USER_ID);
+                console.log('Initializing record for profile:', currentProfile);
             }
             
             updateWaterUI();
@@ -764,17 +764,17 @@
             renderSchedule();
         }
 
-        // Save data to Supabase Cloud for current USER_ID
+        // Save data to Supabase Cloud mapping to the profile column
         async function saveData() {
             await supabaseClient
                 .from('tracker_data')
                 .upsert({
-                    id: USER_ID,
+                    profile: currentProfile,
                     food_entries: foodEntries,
                     water_intake: currentIntake,
                     water_history: hydrationHistoryList,
                     updated_at: new Date()
-                });
+                }, { onConflict: 'profile' });
         }
 
         function updateWaterUI() {
