@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Personal Dashboard</title>
+    <title>Personal Dashboard - Food Intake & Hydration Tracker</title>
     
     <!-- Favicon & iOS Home Screen Icon -->
     <link rel="icon" type="image/png" href="whale.png">
@@ -17,15 +17,32 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
     <!-- External Stylesheet -->
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style1.css">
 </head>
 <body>
+
+    <!-- Left Sidebar Navigation Drawer -->
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+    <aside class="sidebar" id="appSidebar">
+        <div class="sidebar-header">
+            <h3><i class="fa-solid fa-bars" style="margin-right: 8px;"></i> Menu</h3>
+            <button class="sidebar-close" onclick="toggleSidebar()">&times;</button>
+        </div>
+        <div class="sidebar-menu">
+            <button class="sidebar-item active" onclick="switchModule('dashboard')">
+                <i class="fa-solid fa-house"></i> Dashboard
+            </button>
+            <button class="sidebar-item" onclick="switchModule('calendar')">
+                <i class="fa-solid fa-calendar-days"></i> Calendar History
+            </button>
+        </div>
+    </aside>
 
     <div class="dashboard-container">
         <!-- Header -->
         <header class="top-header">
             <div class="header-left">
-                <i class="fa-solid fa-bars menu-icon"></i>
+                <i class="fa-solid fa-bars menu-icon" onclick="toggleSidebar()"></i>
                 FOOD & WATER INTAKE
             </div>
             <div class="header-right">
@@ -38,8 +55,8 @@
             </div>
         </header>
 
-        <!-- Main Content -->
-        <main class="content-grid">
+        <!-- Main Dashboard Module -->
+        <main class="content-grid" id="dashboardModule">
             
             <!-- Left Column: Daily Schedule -->
             <section class="card">
@@ -101,6 +118,22 @@
             </section>
 
         </main>
+
+        <!-- Calendar History Module (Hidden by Default) -->
+        <section class="calendar-module" id="calendarModule" style="display: none;">
+            <div class="card" style="width: 100%; min-height: 500px;">
+                <div class="card-header">
+                    <i class="fa-solid fa-calendar-days" style="color: #407b9e;"></i> CALENDAR HISTORY & PAST LOGS
+                </div>
+                <div class="calendar-controls">
+                    <label for="historyDateSelect">Select Date:</label>
+                    <input type="date" id="historyDateSelect" onchange="loadHistoricalRecordForDate(this.value)">
+                </div>
+                <div id="calendarDayContent" class="calendar-day-view">
+                    <p style="color: var(--text-light); text-align: center; padding: 30px;">Choose a date above to inspect past food and water logs.</p>
+                </div>
+            </div>
+        </section>
     </div>
 
     <!-- Food Intake Form Modal Popup -->
@@ -156,6 +189,6 @@
     </div>
 
     <!-- External Script File -->
-    <script src="script.js"></script>
+    <script src="script1.js"></script>
 </body>
 </html>

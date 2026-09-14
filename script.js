@@ -12,6 +12,87 @@ let currentIntake = 0;
 let foodEntries = [];
 let hydrationHistoryList = [];
 
+// Sidebar Toggle Function
+function toggleSidebar() {
+    const sidebar = document.getElementById('appSidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+    const isOpen = sidebar.classList.contains('open');
+
+    if (isOpen) {
+        sidebar.classList.remove('open');
+        overlay.style.display = 'none';
+    } else {
+        sidebar.classList.add('open');
+        overlay.style.display = 'block';
+    }
+}
+
+// Module Switcher Function (Dashboard vs Calendar)
+function switchModule(moduleName) {
+    const dashboardModule = document.getElementById('dashboardModule');
+    const calendarModule = document.getElementById('calendarModule');
+    const menuItems = document.querySelectorAll('.sidebar-item');
+
+    menuItems.forEach(item => item.classList.remove('active'));
+
+    if (moduleName === 'calendar') {
+        dashboardModule.style.display = 'none';
+        calendarModule.style.display = 'block';
+        event.currentTarget.classList.add('active');
+        
+        // Set default date picker value to today
+        const datePicker = document.getElementById('historyDateSelect');
+        if (!datePicker.value) {
+            datePicker.value = currentDateStr || new Date().toLocaleDateString('en-CA');
+            loadHistoricalRecordForDate(datePicker.value);
+        }
+    } else {
+        calendarModule.style.display = 'none';
+        dashboardModule.style.display = 'grid';
+        event.currentTarget.classList.add('active');
+    }
+
+    toggleSidebar(); // Close sidebar after clicking
+}
+
+// Load and inspect past records for any chosen date in the calendar module
+function loadHistoricalRecordForDate(selectedDate) {
+    const container = document.getElementById('calendarDayContent');
+    const dayData = allDailyRecords[selectedDate];
+
+    if (!dayData || (!dayData.food_entries?.length && !dayData.water_history?.length)) {
+        container.innerHTML = `<p style="color: var(--text-light); text-align: center; padding: 20px;">No records found for ${selectedDate}.</p>`;
+        return;
+    }
+
+    let foodHtml = dayData.food_entries?.map(f => `
+        <div style="background: #e0f2fe; padding: 8px 12px; border-radius: 10px; margin-bottom: 6px; font-size: 13px; display: flex; justify-content: space-between;">
+            <span><strong>${f.time}</strong> - ${f.name} ${f.calories ? `(${f.calories})` : ''}</span>
+            <span style="color: var(--text-light);">${f.details || ''}</span>
+        </div>
+    `).join('') || '<p style="font-size:13px; color:var(--text-light);">No food logged.</p>';
+
+    let waterHtml = dayData.water_history?.map(w => `
+        <div style="background: #f0fdf4; padding: 6px 12px; border-radius: 8px; margin-bottom: 4px; font-size: 13px; display: flex; justify-content: space-between;">
+            <span>${w.time}</span>
+            <span style="font-weight:600; color: #16a34a;">+${w.amount}ml</span>
+        </div>
+    `).join('') || '<p style="font-size:13px; color:var(--text-light);">No water logged.</p>';
+
+    const totalWaterLiters = ((dayData.water_intake || 0) / 1000).toFixed(1);
+
+    container.innerHTML = `
+        <div style="margin-bottom: 15px;">
+            <h4 style="font-size: 15px; margin-bottom: 8px; color: var(--header-bg);"><i class="fa-solid fa-utensils"></i> Food Intake (${selectedDate})</h4>
+            ${foodHtml}
+        </div>
+        <div>
+            <h4 style="font-size: 15px; margin-bottom: 8px; color: #0ea5e9;"><i class="fa-solid fa-droplet"></i> Water Total: ${totalWaterLiters}L</h4>
+            ${waterHtml}
+        </div>
+    `;
+}
+
 function updateProfileSpecifics() {
     const quickAddContainer = document.querySelector('.quick-add-btns');
     if (currentProfile === 'iman_sayf') {
@@ -92,7 +173,6 @@ function switchProfile() {
         initials = "IS";
     }
 
-    document.getElementById('headerProfileTitle').innerText = profileName;
     document.getElementById('userAvatarText').innerText = initials;
 
     updateProfileSpecifics();
