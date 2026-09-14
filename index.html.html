@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personal Dashboard - Food Intake & Hydration Tracker</title>
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Supabase CDN Script -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <style>
+        :root {
+            --bg-page: #e0f2f1;
+            --card-bg: rgba(255, 255, 255, 0.75);
+            --header-bg: #407b9e;
+            --text-main: #1f2937;
+            --text-light: #4b5563;
+            --border-color: #cbd5e1;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-page);
+            color: var(--text-main);
+            min-height: 100vh;
+            padding: 30px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .dashboard-container {
+            width: 100%;
+            max-width: 1350px;
+            background: rgba(255, 255, 255, 0.4);
+            border-radius: 28px;
+            padding: 32px;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.06);
+            backdrop-filter: blur(12px);
+        }
+
+        /* --- Header Section --- */
+        .top-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 28px;
+            padding: 0 10px;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        .menu-icon {
+            font-size: 26px;
+            cursor: pointer;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .user-avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid white;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+            background-color: #00d285;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 15px;
+        }
+
+        /* --- Main Grid Layout --- */
+        .content-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 28px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 24px;
+            padding: 28px;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.03);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: 420px;
+        }
+
+        .card-top-content {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+        }
+
+        .card-header {
+            font-weight: 700;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+
+        .card-subheader {
+            background-color: var(--header-bg);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 22px;
+            font-size: 15px;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* --- Daily Schedule Styles --- */
+        .schedule-list {
+            position: relative;
+            padding-left: 75px;
+            max-height: 280px;
+            overflow-y: auto;
+            margin-bottom: 15px;
+            padding-right: 5px;
+        }
+
+        .schedule-list::-webkit-scrollbar {
+            width: 6px;
+        }
+        .schedule-list::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+
+        /* Timeline line default state (visible when items exist) */
+        .schedule-list::before {
+            content: '';
+            position: absolute;
+            left: 67px;
+            top: 10px;
+            bottom: 10px;
+            width: 2px;
+            background-color: #cbd5e1;
+        }
+
+        /* Empty state styling: perfectly centered top-down & left-right with no timeline line */
+        .schedule-list.empty {
+            padding-left: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex: 1;
+            text-align: center;
+        }
+        .schedule-list.empty::before {
+            display: none;
+        }
+
+        .schedule-item-group {
+            position: relative;
+            margin-bottom: 12px;
+        }
+
+        .time-slot {
+            position: relative;
+            min-height: 44px;
+            display: flex;
+            align-items: center;
+        }
+
+        .time-label {
+            position: absolute;
+            left: -75px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 12px;
+            color: var(--text-light);
+            width: 60px;
+            text-align: right;
+            font-weight: 600;
+        }
+
+        .time-slot::before {
+            content: '';
+            position: absolute;
+            left: -8px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            background-color: var(--header-bg);
+            border: 2px solid white;
+            z-index: 1;
+        }
+
+        .food-entry-tag {
+            background: #e0f2fe;
+            border: 1px solid #bae6fd;
+            color: #0369a1;
+            padding: 10px 14px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+            animation: fadeIn 0.3s ease;
+        }
+
+        .food-details-subtext {
+            display: block;
+            font-size: 11px;
+            font-weight: 400;
+            color: #0284c7;
+            margin-top: 2px;
+        }
+
+        /* Centered Colored Time Gap Indicator */
+        .time-gap-indicator {
+            position: relative;
+            margin: 6px auto;
+            padding: 5px 14px;
+            background: #fef3c7;
+            border: 1px solid #fde68a;
+            color: #b45309;
+            font-size: 11px;
+            font-weight: 700;
+            border-radius: 12px;
+            width: max-content;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+
+        .btn-delete-food {
+            background: transparent;
+            border: none;
+            color: #0369a1;
+            cursor: pointer;
+            font-size: 13px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+        .btn-delete-food:hover {
+            color: #ef4444;
+            background-color: rgba(239, 68, 68, 0.1);
+        }
+
+        .btn-add-event {
+            display: block;
+            width: max-content;
+            margin: 15px auto 0;
+            background-color: var(--header-bg);
+            color: white;
+            border: none;
+            padding: 12px 28px;
+            border-radius: 22px;
+            font-weight: 600;
+            font-size: 15px;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+        }
+        .btn-add-event:hover { background-color: #2c5975; }
+        .btn-add-event:active { transform: scale(0.95); }
+
+        /* --- Hydration Tracker Styles --- */
+        .hydration-stats {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 35px;
+            margin: 10px 0;
+        }
+
+        .bottle-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        #svgWater {
+            transition: height 0.6s cubic-bezier(0.4, 0, 0.2, 1), y 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .water-info {
+            text-align: center;
+            font-size: 15px;
+        }
+        
+        .water-info strong {
+            display: block;
+            font-size: 16px;
+            margin-bottom: 6px;
+        }
+
+        .goal-badge {
+            margin-top: 10px;
+            padding: 8px 14px;
+            border-radius: 14px;
+            font-size: 13px;
+            font-weight: 700;
+            text-align: center;
+            display: none;
+            animation: popIn 0.3s ease;
+        }
+        .goal-badge.reached {
+            background-color: #d1fae5;
+            color: #065f46;
+            border: 1px solid #34d399;
+        }
+        .goal-badge.overfilled {
+            background-color: #dbeafe;
+            color: #1e40af;
+            border: 1px solid #60a5fa;
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0.9); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .quick-add-btns {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+
+        .quick-add-btns button {
+            background-color: #bae6fd;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 22px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+        }
+        .quick-add-btns button:hover { background-color: #7dd3fc; }
+        .quick-add-btns button:active { transform: scale(0.95); }
+
+        .history-list {
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 16px;
+            padding: 10px;
+            min-height: 150px;
+            max-height: 190px;
+            overflow-y: auto;
+        }
+
+        .history-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 16px;
+            font-size: 14px;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+            animation: fadeIn 0.4s ease forwards;
+        }
+        .history-item:last-child { border-bottom: none; }
+        
+        .history-time { color: var(--text-light); }
+        
+        .history-right {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+        }
+        .history-amount { font-weight: 600; }
+
+        .btn-delete {
+            background: transparent;
+            border: none;
+            color: #94a3b8;
+            cursor: pointer;
+            font-size: 14px;
+            padding: 4px 6px;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+        .btn-delete:hover {
+            color: #ef4444; 
+            background-color: rgba(239, 68, 68, 0.1);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* --- Modal Popup Styling --- */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(4px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            animation: fadeIn 0.2s ease;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 24px;
+            width: 100%;
+            max-width: 420px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            position: relative;
+        }
+
+        .modal-header {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: var(--text-main);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            color: var(--text-light);
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: var(--text-light);
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+            background-color: #fff;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            border-color: var(--header-bg);
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .btn-cancel {
+            background: #e2e8f0;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            color: var(--text-light);
+        }
+
+        .btn-submit {
+            background: var(--header-bg);
+            color: white;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 14px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .btn-submit:hover { background-color: #2c5975; }
+
+        @media (max-width: 1024px) {
+            .content-grid { grid-template-columns: 1fr; }
+            .dashboard-container { padding: 20px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="dashboard-container">
+        <!-- Header -->
+        <header class="top-header">
+            <div class="header-left">
+                <i class="fa-solid fa-bars menu-icon"></i>
+                PERSONAL DASHBOARD - WED, OCT 25
+            </div>
+            <div class="header-right">
+                <div class="user-avatar">US</div>
+                <span>User</span>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="content-grid">
+            
+            <!-- Left Column: Daily Schedule -->
+            <section class="card">
+                <div class="card-top-content">
+                    <div class="card-header">
+                        <i class="fa-regular fa-calendar"></i> DAILY SCHEDULE
+                    </div>
+                    <div class="card-subheader">
+                        WEDNESDAY, OCTOBER 25, 2023 <i class="fa-regular fa-calendar"></i>
+                    </div>
+
+                    <div class="schedule-list empty" id="scheduleList">
+                        <div style="color: var(--text-light); text-align: center; font-size: 14px;">
+                            No food intake added yet. Click below to add.
+                        </div>
+                    </div>
+                </div>
+
+                <button class="btn-add-event" onclick="openFoodModal()">ADD FOOD INTAKE</button>
+            </section>
+
+            <!-- Right Column: Hydration Tracker -->
+            <section class="card">
+                <div>
+                    <div class="card-header">
+                        <i class="fa-solid fa-droplet" style="color: #0ea5e9;"></i> HYDRATION TRACKER
+                    </div>
+                    <div class="card-subheader">
+                        DAILY WATER INTAKE <i class="fa-solid fa-droplet"></i>
+                    </div>
+
+                    <div class="hydration-stats">
+                        <div class="bottle-container">
+                            
+                            <!-- Larger Scaled Vector Bottle SVG with Bottom-to-Top Sharp Filling -->
+                            <svg width="140" height="200" viewBox="0 0 100 150" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <defs>
+                                    <clipPath id="bottleClip">
+                                        <path d="M 23 46 H 77 V 138 C 77 143, 73 147, 68 147 H 32 C 27 147, 23 143, 23 138 Z" />
+                                    </clipPath>
+                                    <linearGradient id="waterGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                                        <stop offset="0%" stop-color="#93c5fd" />
+                                        <stop offset="100%" stop-color="#3b82f6" />
+                                    </linearGradient>
+                                </defs>
+
+                                <!-- Water Fill Container starting from absolute bottom (147) -->
+                                <g clip-path="url(#bottleClip)">
+                                    <rect id="svgWater" x="23" y="147" width="54" height="0" fill="url(#waterGradient)" />
+                                </g>
+
+                                <!-- Bottle Cap -->
+                                <rect x="40" y="8" width="20" height="10" rx="3" fill="#ffffff" stroke="#1f2937" stroke-width="3" stroke-linejoin="round"/>
+                                
+                                <!-- Bottle Outline Contour -->
+                                <path d="M 43 18 H 57 C 62 18, 65 25, 70 32 C 74 38, 77 42, 77 46 V 138 C 77 143, 73 147, 68 147 H 32 C 27 147, 23 143, 23 138 V 46 C 23 42, 26 38, 30 32 C 35 25, 38 18, 43 18 Z" fill="none" stroke="#1f2937" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+
+                            <div style="font-size: 15px; font-weight: 600;" id="amountText">0.0L / 2.5L</div>
+                        </div>
+                        
+                        <div class="water-info">
+                            <div id="infoText">
+                                <strong>TODAY'S GOAL:</strong>
+                                2.5 Liters<br><br>
+                                <strong>CURRENT:</strong>
+                                0.0 L (0%)
+                            </div>
+                            <!-- Goal Reached & Extra Intake Indicator Badge -->
+                            <div id="goalIndicator" class="goal-badge"></div>
+                        </div>
+                    </div>
+
+                    <div class="quick-add-btns">
+                        <button onclick="addWater(250)">+250ml</button>
+                        <button onclick="addWater(500)">+500ml</button>
+                        <button onclick="addWater(1000)">+1000ml</button>
+                    </div>
+                </div>
+
+                <div class="history-list" id="hydrationHistory"></div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- Food Intake Form Modal Popup -->
+    <div class="modal-overlay" id="foodModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span>Add Food Intake</span>
+                <button class="modal-close" onclick="closeFoodModal()">&times;</button>
+            </div>
+            <form id="foodForm" onsubmit="handleFoodSubmit(event)">
+                <div class="form-group">
+                    <label for="foodSelect">Food / Meal Selection</label>
+                    <select id="foodSelect" onchange="onFoodDropdownChange()" required>
+                        <option value="" disabled selected>-- Choose suggested meal or snack --</option>
+                        <option value="Breakfast">Breakfast</option>
+                        <option value="Lunch">Lunch</option>
+                        <option value="Dinner">Dinner</option>
+                        <option value="Snack">Snack</option>
+                        <option value="Fresh Fruit">Fresh Fruit</option>
+                        <option value="Beverage / Coffee">Beverage / Coffee</option>
+                        <option value="custom">Other / Custom Meal...</option>
+                    </select>
+                </div>
+
+                <!-- Custom Meal Input (Hidden by default) -->
+                <div class="form-group" id="customFoodGroup" style="display: none;">
+                    <label for="customFoodName">Custom Meal Name</label>
+                    <input type="text" id="customFoodName" placeholder="Enter meal name">
+                </div>
+
+                <!-- Optional Food Details / Notes -->
+                <div class="form-group">
+                    <label for="foodDetails">Food Details / Notes <span style="font-weight: 400; color: #94a3b8;">(Optional)</span></label>
+                    <input type="text" id="foodDetails" placeholder="e.g. Oatmeal with fruits & honey">
+                </div>
+
+                <div class="form-group">
+                    <label for="foodTime">Time</label>
+                    <input type="time" id="foodTime" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="foodCalories">Estimated Calories (kcal) <span style="font-weight: 400; color: #94a3b8;">(Optional)</span></label>
+                    <input type="number" id="foodCalories" placeholder="e.g. 250">
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn-cancel" onclick="closeFoodModal()">Cancel</button>
+                    <button type="submit" class="btn-submit">Add Entry</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- JavaScript Logic & Supabase Cloud Sync Handling -->
+    <script>
+        // Supabase Configuration
+        const SUPABASE_URL = 'https://bitrshuqaqtdzoeaiuaj.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJpdHJzaHVxYXF0ZHpvZWFpdWFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkzNjM3NDQsImV4cCI6MjEwNDkzOTc0NH0.kH0EB6fMY2WqV8EQud22Z-VtuXswuJk22fx1-G9zCJU';
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        const USER_ID = 'my_personal_dashboard';
+
+        const dailyGoal = 2500; // 2.5L in ml
+        let currentIntake = 0;
+        let foodEntries = [];
+        let hydrationHistoryList = [];
+
+        const cavityBottom = 147; 
+        const cavityTop = 46;    
+        const maxCavityHeight = 101; 
+
+        // Load data from Supabase Cloud on page start
+        async function loadData() {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('tracker_data')
+                    .select('*')
+                    .eq('id', USER_ID)
+                    .single();
+                
+                if (data) {
+                    foodEntries = data.food_entries || [];
+                    currentIntake = data.water_intake || 0;
+                    hydrationHistoryList = data.water_history || [];
+                }
+            } catch (err) {
+                console.log('Initializing new cloud record...');
+            }
+            
+            updateWaterUI();
+            renderHydrationHistoryFromStorage();
+            renderSchedule();
+        }
+
+        // Save data to Supabase Cloud
+        async function saveData() {
+            await supabaseClient
+                .from('tracker_data')
+                .upsert({
+                    id: USER_ID,
+                    food_entries: foodEntries,
+                    water_intake: currentIntake,
+                    water_history: hydrationHistoryList,
+                    updated_at: new Date()
+                });
+        }
+
+        function updateWaterUI() {
+            if (currentIntake < 0) currentIntake = 0;
+
+            const ratio = currentIntake / dailyGoal; 
+            const liters = (currentIntake / 1000).toFixed(1); 
+            const percentage = Math.round(ratio * 100);
+
+            let visualRatio = ratio;
+            if (visualRatio > 1.1) visualRatio = 1.1; 
+
+            const waterHeight = visualRatio * maxCavityHeight;
+            const waterY = cavityBottom - waterHeight;
+
+            const svgWater = document.getElementById('svgWater');
+            svgWater.setAttribute('height', waterHeight);
+            svgWater.setAttribute('y', waterY);
+
+            document.getElementById('amountText').innerText = `${liters}L / 2.5L`;
+            
+            document.getElementById('infoText').innerHTML = `
+                <strong>TODAY'S GOAL:</strong>
+                2.5 Liters<br><br>
+                <strong>CURRENT:</strong>
+                ${liters} L (${percentage}%)
+            `;
+
+            const indicatorEl = document.getElementById('goalIndicator');
+            if (currentIntake >= dailyGoal) {
+                const extraMl = currentIntake - dailyGoal;
+                indicatorEl.style.display = 'block';
+                if (extraMl > 0) {
+                    indicatorEl.className = 'goal-badge overfilled';
+                    indicatorEl.innerHTML = `<i class="fa-solid fa-fire"></i> Target Reached! (+${extraMl}ml Extra)`;
+                } else {
+                    indicatorEl.className = 'goal-badge reached';
+                    indicatorEl.innerHTML = `<i class="fa-solid fa-circle-check"></i> Daily Goal Achieved!`;
+                }
+            } else {
+                indicatorEl.style.display = 'none';
+            }
+        }
+
+        function addWater(amount) {
+            currentIntake += amount;
+            
+            const now = new Date();
+            const hours = now.getHours().toString().padStart(2, '0');
+            const minutes = now.getMinutes().toString().padStart(2, '0');
+            const timeString = `${hours}:${minutes}`;
+
+            hydrationHistoryList.unshift({ time: timeString, amount: amount });
+            saveData();
+            updateWaterUI();
+            renderHydrationHistoryFromStorage();
+        }
+
+        function removeHydrationItem(index) {
+            const removed = hydrationHistoryList.splice(index, 1)[0];
+            if (removed) {
+                currentIntake -= removed.amount;
+            }
+            saveData();
+            updateWaterUI();
+            renderHydrationHistoryFromStorage();
+        }
+
+        function renderHydrationHistoryFromStorage() {
+            const historyList = document.getElementById('hydrationHistory');
+            historyList.innerHTML = '';
+
+            hydrationHistoryList.forEach((item, index) => {
+                const historyItem = document.createElement('div');
+                historyItem.className = 'history-item';
+                
+                historyItem.innerHTML = `
+                    <span class="history-time">${item.time}</span>
+                    <div class="history-right">
+                        <span class="history-amount">+${item.amount}ml</span>
+                        <button class="btn-delete" title="Delete record" onclick="removeHydrationItem(${index})">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </div>
+                `;
+                historyList.appendChild(historyItem);
+            });
+        }
+
+        /* --- Modal and Food Intake Logic --- */
+        function openFoodModal() {
+            const now = new Date();
+            const hours = now.getHours().toString().padStart(2, '0');
+            const minutes = now.getMinutes().toString().padStart(2, '0');
+            document.getElementById('foodTime').value = `${hours}:${minutes}`;
+            
+            // Reset dropdown & fields state
+            document.getElementById('foodSelect').selectedIndex = 0;
+            document.getElementById('customFoodGroup').style.display = 'none';
+            document.getElementById('customFoodName').value = '';
+            document.getElementById('foodDetails').value = '';
+            document.getElementById('foodCalories').value = '';
+
+            document.getElementById('foodModal').style.display = 'flex';
+        }
+
+        function closeFoodModal() {
+            document.getElementById('foodModal').style.display = 'none';
+            document.getElementById('foodForm').reset();
+            document.getElementById('customFoodGroup').style.display = 'none';
+        }
+
+        function onFoodDropdownChange() {
+            const selectEl = document.getElementById('foodSelect');
+            const customGroup = document.getElementById('customFoodGroup');
+
+            if (selectEl.value === 'custom') {
+                customGroup.style.display = 'block';
+                document.getElementById('customFoodName').required = true;
+            } else {
+                customGroup.style.display = 'none';
+                document.getElementById('customFoodName').required = false;
+            }
+        }
+
+        function handleFoodSubmit(event) {
+            event.preventDefault();
+            const selectEl = document.getElementById('foodSelect');
+            let foodName = selectEl.value;
+
+            if (foodName === 'custom') {
+                foodName = document.getElementById('customFoodName').value;
+            }
+
+            const foodDetails = document.getElementById('foodDetails').value.trim();
+            const foodTime = document.getElementById('foodTime').value; // e.g., "14:14"
+            let foodCalories = document.getElementById('foodCalories').value.trim();
+            
+            let calorieText = foodCalories ? `${foodCalories} kcal` : '';
+
+            foodEntries.push({ 
+                name: foodName, 
+                details: foodDetails, 
+                time: foodTime, 
+                calories: calorieText 
+            });
+            
+            // Sort chronologically
+            foodEntries.sort((a, b) => a.time.localeCompare(b.time));
+
+            saveData();
+            renderSchedule();
+            closeFoodModal();
+        }
+
+        function getTimeDifference(time1, time2) {
+            const [h1, m1] = time1.split(':').map(Number);
+            const [h2, m2] = time2.split(':').map(Number);
+            
+            let minutes1 = h1 * 60 + m1;
+            let minutes2 = h2 * 60 + m2;
+            
+            let diff = minutes2 - minutes1;
+            if (diff < 0) diff += 24 * 60;
+            
+            const hours = Math.floor(diff / 60);
+            const minutes = diff % 60;
+            
+            if (hours === 0) return `${minutes}m gap`;
+            if (minutes === 0) return `${hours}h gap`;
+            return `${hours}h ${minutes}m gap`;
+        }
+
+        function renderSchedule() {
+            const scheduleList = document.getElementById('scheduleList');
+            scheduleList.innerHTML = '';
+
+            if (foodEntries.length === 0) {
+                scheduleList.classList.add('empty');
+                scheduleList.innerHTML = '<div style="color: var(--text-light); text-align: center; font-size: 14px;">No food intake added yet. Click below to add.</div>';
+                return;
+            } else {
+                scheduleList.classList.remove('empty');
+            }
+
+            foodEntries.forEach((entry, index) => {
+                const group = document.createElement('div');
+                group.className = 'schedule-item-group';
+
+                let metaInfo = [];
+                if (entry.calories) metaInfo.push(entry.calories);
+
+                let metaString = metaInfo.length > 0 ? `(${metaInfo.join(', ')})` : '';
+
+                let detailsHtml = entry.details ? `<span class="food-details-subtext"><i class="fa-solid fa-circle-info" style="margin-right: 4px;"></i>${entry.details}</span>` : '';
+
+                const slot = document.createElement('div');
+                slot.className = 'time-slot';
+                slot.innerHTML = `
+                    <span class="time-label">${entry.time}</span>
+                    <div class="food-entry-tag">
+                        <div>
+                            <span><i class="fa-solid fa-utensils" style="margin-right: 6px;"></i> <strong>${entry.name}</strong> ${metaString}</span>
+                            ${detailsHtml}
+                        </div>
+                        <button class="btn-delete-food" onclick="removeFood(${index})" title="Delete entry">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </div>
+                `;
+                group.appendChild(slot);
+
+                // If there is a next entry, calculate and display the centered colored time duration gap between them
+                if (index < foodEntries.length - 1) {
+                    const nextEntry = foodEntries[index + 1];
+                    const gapText = getTimeDifference(entry.time, nextEntry.time);
+                    
+                    const gapIndicator = document.createElement('div');
+                    gapIndicator.className = 'time-gap-indicator';
+                    gapIndicator.innerHTML = `<i class="fa-regular fa-clock"></i> ${gapText}`;
+                    group.appendChild(gapIndicator);
+                }
+
+                scheduleList.appendChild(group);
+            });
+        }
+
+        function removeFood(index) {
+            foodEntries.splice(index, 1);
+            saveData();
+            renderSchedule();
+        }
+
+        // Initialize application data from Supabase Cloud on page load
+        window.onload = loadData;
+    </script>
+</body>
+</html>
