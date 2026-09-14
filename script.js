@@ -105,6 +105,7 @@ function updateProfileSpecifics() {
     } else {
         dailyGoal = 2500; 
         quickAddContainer.innerHTML = `
+            <button onclick="addWater(50)">+50ml</button>
             <button onclick="addWater(250)">+250ml</button>
             <button onclick="addWater(500)">+500ml</button>
             <button onclick="addWater(1000)">+1000ml</button>
