@@ -32,7 +32,7 @@
             background-color: var(--bg-page);
             color: var(--text-main);
             min-height: 100vh;
-            padding: 30px;
+            padding: 20px;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -55,19 +55,21 @@
             align-items: center;
             margin-bottom: 28px;
             padding: 0 10px;
+            flex-wrap: wrap;
+            gap: 15px;
         }
 
         .header-left {
             display: flex;
             align-items: center;
-            gap: 15px;
-            font-size: 22px;
+            gap: 12px;
+            font-size: 20px;
             font-weight: 700;
             letter-spacing: 0.5px;
         }
 
         .menu-icon {
-            font-size: 26px;
+            font-size: 24px;
             cursor: pointer;
         }
 
@@ -183,7 +185,7 @@
             background-color: #cbd5e1;
         }
 
-        /* Empty state styling: perfectly centered top-down & left-right with no timeline line */
+        /* Empty state styling */
         .schedule-list.empty {
             padding-left: 0;
             display: flex;
@@ -313,8 +315,9 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            gap: 35px;
+            gap: 30px;
             margin: 10px 0;
+            flex-wrap: wrap;
         }
 
         .bottle-container {
@@ -368,14 +371,15 @@
         .quick-add-btns {
             display: flex;
             justify-content: center;
-            gap: 12px;
+            gap: 10px;
             margin-bottom: 18px;
+            flex-wrap: wrap;
         }
 
         .quick-add-btns button {
             background-color: #bae6fd;
             border: none;
-            padding: 10px 20px;
+            padding: 10px 16px;
             border-radius: 22px;
             font-weight: 600;
             font-size: 14px;
@@ -444,12 +448,13 @@
             justify-content: center;
             align-items: center;
             z-index: 1000;
+            padding: 15px;
             animation: fadeIn 0.2s ease;
         }
 
         .modal-content {
             background: white;
-            padding: 30px;
+            padding: 24px;
             border-radius: 24px;
             width: 100%;
             max-width: 420px;
@@ -530,9 +535,52 @@
         }
         .btn-submit:hover { background-color: #2c5975; }
 
+        /* --- Media Queries for iPhone and iPad Responsiveness --- */
         @media (max-width: 1024px) {
-            .content-grid { grid-template-columns: 1fr; }
-            .dashboard-container { padding: 20px; }
+            .content-grid { 
+                grid-template-columns: 1fr; 
+            }
+            .dashboard-container { 
+                padding: 24px; 
+            }
+        }
+
+        @media (max-width: 600px) {
+            body { 
+                padding: 10px; 
+            }
+            .dashboard-container { 
+                padding: 16px; 
+                border-radius: 20px; 
+            }
+            .top-header { 
+                flex-direction: column; 
+                align-items: stretch; 
+                gap: 12px; 
+                margin-bottom: 20px; 
+            }
+            .header-left { 
+                font-size: 17px; 
+            }
+            .header-right { 
+                justify-content: space-between; 
+                width: 100%; 
+            }
+            .card { 
+                padding: 20px 16px; 
+                min-height: 380px; 
+                border-radius: 20px; 
+            }
+            .card-header { 
+                font-size: 16px; 
+            }
+            .card-subheader { 
+                font-size: 13px; 
+                padding: 10px 14px; 
+            }
+            .hydration-stats { 
+                gap: 15px; 
+            }
         }
     </style>
 </head>
