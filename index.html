@@ -79,6 +79,18 @@
             font-size: 16px;
         }
 
+        .profile-select {
+            padding: 8px 14px;
+            border-radius: 14px;
+            border: 1px solid var(--border-color);
+            font-weight: 600;
+            font-size: 14px;
+            background: white;
+            color: var(--text-main);
+            cursor: pointer;
+            outline: none;
+        }
+
         .user-avatar {
             width: 44px;
             height: 44px;
@@ -531,11 +543,15 @@
         <header class="top-header">
             <div class="header-left">
                 <i class="fa-solid fa-bars menu-icon"></i>
-                PERSONAL DASHBOARD - WED, OCT 25
+                PERSONAL DASHBOARD - <span id="headerProfileTitle">SOLLEHIN</span>
             </div>
             <div class="header-right">
-                <div class="user-avatar">US</div>
-                <span>User</span>
+                <select id="profileSelect" class="profile-select" onchange="switchProfile()">
+                    <option value="sollehin">Sollehin</option>
+                    <option value="syahirah">Syahirah</option>
+                    <option value="iman_sayf">Iman Sayf</option>
+                </select>
+                <div class="user-avatar" id="userAvatarText">SO</div>
             </div>
         </header>
 
@@ -549,7 +565,7 @@
                         <i class="fa-regular fa-calendar"></i> DAILY SCHEDULE
                     </div>
                     <div class="card-subheader">
-                        WEDNESDAY, OCTOBER 25, 2023 <i class="fa-regular fa-calendar"></i>
+                        TODAY'S INTAKE LOG <i class="fa-regular fa-calendar"></i>
                     </div>
 
                     <div class="schedule-list empty" id="scheduleList">
@@ -679,13 +695,14 @@
         </div>
     </div>
 
-    <!-- JavaScript Logic & Supabase Cloud Sync Handling -->
+    <!-- JavaScript Logic & Multi-Profile Supabase Handling -->
     <script>
         // Supabase Configuration
         const SUPABASE_URL = 'https://bitrshuqaqtdzoeaiuaj.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJpdHJzaHVxYXF0ZHpvZWFpdWFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkzNjM3NDQsImV4cCI6MjEwNDkzOTc0NH0.kH0EB6fMY2WqV8EQud22Z-VtuXswuJk22fx1-G9zCJU';
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        const USER_ID = 'my_personal_dashboard';
+        
+        let USER_ID = 'sollehin'; // Default profile
 
         const dailyGoal = 2500; // 2.5L in ml
         let currentIntake = 0;
@@ -696,8 +713,36 @@
         const cavityTop = 46;    
         const maxCavityHeight = 101; 
 
-        // Load data from Supabase Cloud on page start
+        // Switch profile dynamically when dropdown changes
+        function switchProfile() {
+            const selectEl = document.getElementById('profileSelect');
+            USER_ID = selectEl.value;
+
+            // Update header text and avatar initials dynamically
+            let profileName = "SOLLEHIN";
+            let initials = "SO";
+            if (USER_ID === 'syahirah') {
+                profileName = "SYAHIRAH";
+                initials = "SY";
+            } else if (USER_ID === 'iman_sayf') {
+                profileName = "IMAN SAYF";
+                initials = "IS";
+            }
+
+            document.getElementById('headerProfileTitle').innerText = profileName;
+            document.getElementById('userAvatarText').innerText = initials;
+
+            // Load data for the newly selected profile
+            loadData();
+        }
+
+        // Load data from Supabase Cloud for current USER_ID
         async function loadData() {
+            // Reset local states temporarily while fetching
+            currentIntake = 0;
+            foodEntries = [];
+            hydrationHistoryList = [];
+
             try {
                 const { data, error } = await supabaseClient
                     .from('tracker_data')
@@ -711,7 +756,7 @@
                     hydrationHistoryList = data.water_history || [];
                 }
             } catch (err) {
-                console.log('Initializing new cloud record...');
+                console.log('Initializing record for profile:', USER_ID);
             }
             
             updateWaterUI();
@@ -719,7 +764,7 @@
             renderSchedule();
         }
 
-        // Save data to Supabase Cloud
+        // Save data to Supabase Cloud for current USER_ID
         async function saveData() {
             await supabaseClient
                 .from('tracker_data')
@@ -826,7 +871,6 @@
             const minutes = now.getMinutes().toString().padStart(2, '0');
             document.getElementById('foodTime').value = `${hours}:${minutes}`;
             
-            // Reset dropdown & fields state
             document.getElementById('foodSelect').selectedIndex = 0;
             document.getElementById('customFoodGroup').style.display = 'none';
             document.getElementById('customFoodName').value = '';
@@ -865,7 +909,7 @@
             }
 
             const foodDetails = document.getElementById('foodDetails').value.trim();
-            const foodTime = document.getElementById('foodTime').value; // e.g., "14:14"
+            const foodTime = document.getElementById('foodTime').value;
             let foodCalories = document.getElementById('foodCalories').value.trim();
             
             let calorieText = foodCalories ? `${foodCalories} kcal` : '';
@@ -877,7 +921,6 @@
                 calories: calorieText 
             });
             
-            // Sort chronologically
             foodEntries.sort((a, b) => a.time.localeCompare(b.time));
 
             saveData();
@@ -942,7 +985,6 @@
                 `;
                 group.appendChild(slot);
 
-                // If there is a next entry, calculate and display the centered colored time duration gap between them
                 if (index < foodEntries.length - 1) {
                     const nextEntry = foodEntries[index + 1];
                     const gapText = getTimeDifference(entry.time, nextEntry.time);
